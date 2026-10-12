@@ -1,1207 +1,637 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ガジェット購入判断スコアラー（実用特化版）</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    :root {
-      --primary-color: #4a90d9;
-      --primary-dark: #357abd;
-      --success-color: #27ae60;
-      --warning-color: #f39c12;
-      --danger-color: #e74c3c;
-      --bg-color: #f5f7fa;
-      --card-bg: #ffffff;
-      --text-color: #2c3e50;
-      --border-color: #dcdfe6;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Helvetica Neue', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      color: var(--text-color);
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-      padding: 20px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    .header h1 {
-      margin: 0 0 10px 0;
-      font-size: 1.8rem;
-      color: #2c3e50;
-    }
-
-    .header p {
-      margin: 0;
-      color: #7f8c8d;
-      font-size: 0.9rem;
-    }
-
-    /* Tabs */
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .tab {
-      flex: 1;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px 8px 0 0;
-      background: #ecf0f1;
-      color: #7f8c8d;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.3s;
-    }
-
-    .tab.active {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    .tab:hover:not(.active) {
-      background: #dfe6e9;
-    }
-
-    /* Section Cards */
-    .section-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 25px;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-      animation: slideIn 0.3s ease-out;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .section-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin: 0 0 15px 0;
-      padding-bottom: 10px;
-      border-bottom: 2px solid var(--primary-color);
-    }
-
-    /* Form Groups */
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    label {
-      display: block;
-      font-weight: 500;
-      margin-bottom: 5px;
-      font-size: 0.9rem;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 0.9rem;
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(74,144,217,0.2);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 40px;
-    }
-
-    .hint {
-      font-size: 0.8rem;
-      color: #95a5a6;
-      margin-top: 4px;
-    }
-
-    /* Price Calculator */
-    .price-input-group {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-
-    .price-input {
-      flex: 1;
-      min-width: 120px;
-    }
-
-    .dynamic-list {
-      margin-top: 15px;
-    }
-
-    .list-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .dynamic-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .dynamic-item input {
-      flex: 1;
-    }
-
-    .dynamic-item select {
-      width: 80px;
-    }
-
-    .dynamic-item .discount-input {
-      flex: 1;
-      max-width: 100px;
-    }
-
-    .dynamic-item .check-box {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-    }
-
-    .btn-add, .btn-remove {
-      padding: 6px 12px;
-      font-size: 0.85rem;
-      border: 1px solid var(--border-color);
-      background: #f8f9fa;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .btn-add {
-      background: var(--success-color);
-      border-color: var(--success-color);
-      color: white;
-    }
-
-    .btn-add:hover {
-      background: #219a52;
-    }
-
-    .btn-remove {
-      background: var(--danger-color);
-      border-color: var(--danger-color);
-      color: white;
-    }
-
-    .btn-remove:hover {
-      background: #c0392b;
-    }
-
-    /* Results */
-    .result-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .result-row:last-child {
-      border-bottom: none;
-    }
-
-    .result-label {
-      font-weight: 500;
-    }
-
-    .result-value {
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
-
-    .price-highlight {
-      color: var(--primary-color);
-    }
-
-    /* Need Score */
-    .need-question {
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      border-left: 3px solid var(--primary-color);
-    }
-
-    .need-options {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .need-option {
-      display: none;
-      gap: 5px;
-    }
-
-    .need-option input[type="radio"] {
-      width: auto;
-      height: 20px;
-      flex-shrink: 0;
-    }
-
-    .need-option-label {
-      padding: 8px 12px;
-      border: 1px solid var(--border-color);
-      background: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
-
-    .need-option input[type="radio"]:checked + .need-option-label {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-      color: white;
-    }
-
-    /* Buttons */
-    .btn-primary, .btn-secondary {
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-      border: none;
-    }
-
-    .btn-primary {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: var(--primary-dark);
-      transform: translateY(-2px);
-    }
-
-    .btn-secondary {
-      background: #ecf0f1;
-      color: var(--text-color);
-      margin-left: 10px;
-    }
-
-    .btn-secondary:hover {
-      background: #bdc3c7;
-    }
-
-    /* Score Display */
-    .score-card {
-      text-align: center;
-      padding: 20px;
-    }
-
-    .score-value {
-      font-size: 3rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .score-label {
-      font-size: 1rem;
-      color: #7f8c8d;
-      margin-top: 10px;
-    }
-
-    .score-s {
-      color: #f1c40f;
-      text-shadow: 0 0 10px rgba(241,196,15,0.3);
-    }
-
-    .score-a {
-      color: var(--primary-color);
-    }
-
-    .score-b {
-      color: var(--warning-color);
-    }
-
-    .score-f {
-      color: var(--danger-color);
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-      }
-
-    .rank-text {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-top: 15px;
-    }
-
-    .recommendation {
-      margin-top: 15px;
-      padding: 15px;
-      border-radius: 8px;
-      font-weight: 500;
-    }
-
-    .recommendation-s {
-      background: #d4edda;
-      border: 2px solid #c3e6cb;
-      color: #155724;
-    }
-
-    .recommendation-a {
-      background: #d1ecf1;
-      border: 2px solid #bee5eb;
-      color: #0c5460;
-    }
-
-    .recommendation-b {
-      background: #fff3cd;
-      border: 2px solid #ffeeba;
-      color: #856404;
-    }
-
-    .recommendation-f {
-      background: #f8d7da;
-      border: 2px solid #f5c6cb;
-      color: #721c24;
-    }
-
-    /* Investment Calculator */
-    .investment-calc {
-      background: var(--danger-color);
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 15px;
-      animation: shake 0.5s;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
-    }
-
-    /* History */
-    .history-card {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .history-item {
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      border-left: 4px solid;
-    }
-
-    .history-item .item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      flex-wrap: wrap;
-    }
-
-    .history-item h4 {
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .history-date {
-      font-size: 0.8rem;
-      color: #7f8c8d;
-    }
-
-    .history-item .item-details {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 5px;
-      font-size: 0.85rem;
-    }
-
-    .history-item .item-row {
-      display: flex;
-      gap: 8px;
-      padding: 5px 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .history-item .item-row:last-child {
-      border-bottom: none;
-    }
-
-    .history-item .price-compare {
-      color: var(--danger-color);
-    }
-
-    .history-item .price-good {
-      color: var(--success-color);
-    }
-
-    /* Search Links */
-    .search-links {
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .search-btn {
-      display: inline-block;
-      padding: 8px 15px;
-      background: white;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      text-decoration: none;
-      font-size: 0.85rem;
-      color: var(--text-color);
-      transition: all 0.3s;
-      margin-right: 5px;
-      margin-bottom: 5px;
-    }
-
-    .search-btn:hover {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-      color: white;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .container {
-        padding: 15px;
-      }
-
-      .header h1 {
-        font-size: 1.4rem;
-      }
-
-      .section-card {
-        padding: 20px;
-      }
-
-      .price-input-group {
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      .price-input {
-        width: 100%;
-      }
-
-      .result-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-      }
-
-      .btn-add, .btn-remove {
-        padding-left: 10px;
-      }
-
-      .need-options {
-        flex-direction: column;
-      }
-
-      .history-item .item-details {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Utility Classes */
-    .text-danger { color: var(--danger-color); }
-    .text-success { color: var(--success-color); }
-    .text-warning { color: var(--warning-color); }
-    .text-muted { color: #95a5a6; }
-
-    .hidden { display: none !important; }
-
-    .info-box {
-      background: #e3f2fd;
-      border: 1px solid #2196f3;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-
-    .info-box strong {
-      color: #1976d2;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お得チェッカー | 家電購入判断アシスト</title>
+    
+    <!-- 外部ライブラリの読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        /* トランジションアニメーション */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        .fade-leave-active {
+            position: absolute;
+            width: 100%;
+        }
+        .chart-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            margin: 0 auto;
+        }
+        .chart-center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <h1>🛒 ガジェット購入判断スコアラー（実用特化版）</h1>
-      <p>実質価格と客観的基準で、ガジェット購入の正解を見つけよう！</p>
-    </div>
-
-    <!-- Info Box -->
-    <div class="info-box">
-      <strong>💡 使い方：</strong>
-      <ol style="margin: 8px 0 0 20px; padding: 0;">
-        <li>商品名と定価を入力します</li>
-        <li>値引き・ポイントバックを動的に追加して実質負担額を計算</li>
-        <li>市場最安値を入力して価格差を評価</li>
-        <li>5 つの定性質問に回答</li>
-        <li>「判定する」ボタンを押して総合スコアを確認</li>
-      </ol>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('calculator')">計算入力</button>
-      <button class="tab" onclick="switchTab('history')">履歴一覧</button>
-    </div>
-
-    <!-- Calculator Tab -->
-    <div id="calculator-tab">
-      <!-- Item Name and Base Price -->
-      <div class="section-card">
-        <h3 class="section-title">📝 商品情報</h3>
-        <div class="form-group">
-          <label for="itemName">商品名 <span style="color: var(--danger-color);">*</span></label>
-          <input type="text" id="itemName" placeholder="例：MacBook Air 13" required>
-        </div>
-        <div class="form-group">
-          <label for="basePrice">定価 / 店頭表示価格（円） <span style="color: var(--danger-color);">*</span></label>
-          <input type="number" id="basePrice" placeholder="例：189,800" min="0" required>
-        </div>
-        <div class="form-group">
-          <label for="marketPrice">市場最安値（価格.com/量販店 最安値） <span style="color: var(--danger-color);">*</span></label>
-          <input type="number" id="marketPrice" placeholder="例：179,800" min="0" required>
-        </div>
-        <div class="form-group">
-          <label for="productNameSearch">商品名（検索用リンク用）</label>
-          <input type="text" id="productNameSearch" placeholder="例：MacBook Air 13 M3 2024" style="font-weight: bold;">
-          <div class="hint">空白は入力されたとおりにリンクを生成します</div>
-        </div>
-        <div class="search-links" id="searchLinks" style="display: none;">
-          <a href="#" class="search-btn" id="kakakuSearchLink" target="_blank" title="kakaku.com で検索">🔍 kakaku.com で検索</a>
-          <a href="#" class="search-btn" id="googleShoppingLink" target="_blank" title="Google ショッピング で検索">🛍️ Google ショッピング</a>
-        </div>
-      </div>
-
-      <!-- Discount List -->
-      <div class="section-card">
-        <h3 class="section-title">💰 値引き項目</h3>
-        <div class="dynamic-list" id="discountList"></div>
-        <button type="button" class="btn-add" onclick="addDiscountItem()">＋項目を追加</button>
-      </div>
-
-      <!-- Points List -->
-      <div class="section-card">
-        <h3 class="section-title">🎁 ポイント還元項目</h3>
-        <div class="dynamic-list" id="pointsList"></div>
-        <button type="button" class="btn-add" onclick="addPointItem()">＋項目を追加</button>
-      </div>
-    </div>
-
-    <!-- Result Tab (Hidden by default) -->
-    <div id="result-tab" class="hidden">
-      <!-- Real Price Display -->
-      <div class="section-card">
-        <h3 class="section-title">💵 実質負担額</h3>
-        <div class="result-row">
-          <span class="result-label">還元ポイント合計</span>
-          <span class="result-value" id="totalPoints">0 pt</span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">合計値引き額</span>
-          <span class="result-value" id="totalDiscount">¥0</span>
-        </div>
-        <div class="result-row">
-          <span class="result-label" style="font-size: 1.1rem;">実質負担額</span>
-          <span class="result-value price-highlight" id="realPrice">¥0</span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">市場最安値との差額</span>
-          <span class="result-value" id="priceDiff">¥0</span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">価格差%</span>
-          <span class="result-value" id="priceDiffPercent">0%</span>
-        </div>
-      </div>
-
-      <!-- Score Calculation -->
-      <div class="section-card">
-        <h3 class="section-title">📊 評価項目とスコア</h3>
+    <div id="app" class="min-h-screen flex items-center justify-center p-4 sm:p-8">
         
-        <!-- Price Score -->
-        <div class="need-question">
-          <strong>1. 価格・経済性（最大 50 点）</strong>
-          <p id="priceScoreText">実質負担額と最安値比較で評価</p>
-          <div class="need-options">
-            <div class="need-option">
-              <input type="radio" name="priceScore" id="ps0" value="50" onchange="updateScoreDisplay()">
-              <label class="need-option-label" for="ps0">最安値以下／＋3% 以内</label>
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden relative">
+            <!-- ヘッダーとプログレスバー -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white text-center shadow-md z-10 relative">
+                <h1 class="text-2xl font-bold tracking-wider"><i class="fa-solid fa-tags mr-2"></i>お得チェッカー</h1>
+                <p class="text-sm text-blue-100 mt-1 opacity-90">家電の「買い時」をスコアで判定</p>
+                
+                <div class="mt-4 flex justify-between items-center px-2">
+                    <div v-for="step in 6" :key="step" class="flex-1 flex items-center">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors duration-300"
+                             :class="currentStep >= step ? 'bg-white text-blue-700 shadow-lg' : 'bg-blue-800 text-blue-300'">
+                            {{ step }}
+                        </div>
+                        <div v-if="step < 6" class="flex-1 h-1 mx-1 rounded-full transition-colors duration-300"
+                             :class="currentStep > step ? 'bg-white' : 'bg-blue-800'"></div>
+                    </div>
+                </div>
             </div>
-            <div class="need-option">
-              <input type="radio" name="priceScore" id="ps1" value="35" onchange="updateScoreDisplay()" checked>
-              <label class="need-option-label" for="ps1">最安値より＋3%〜10% 高い</label>
+
+            <!-- メインコンテンツ領域 -->
+            <div class="p-6 sm:p-10 relative min-h-[450px]">
+                <transition name="fade">
+                    
+                    <!-- STEP 1: メーカー選択 -->
+                    <div v-if="currentStep === 1" class="absolute w-full left-0 px-6 sm:px-10">
+                        <h2 class="text-xl font-bold mb-6 text-center text-gray-700">検討しているメーカーを選択してください</h2>
+                        <div class="relative mb-6">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <i class="fa-solid fa-search"></i>
+                            </span>
+                            <input type="text" v-model="searchBrandQuery" placeholder="メーカー名を入力 (例: SONY, Panasonic)" 
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-lg">
+                        </div>
+                        
+                        <div class="max-h-48 overflow-y-auto mb-6 bg-gray-50 rounded-lg border border-gray-100">
+                            <button v-for="brand in filteredBrands" :key="brand" @click="selectBrand(brand)"
+                                    class="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors font-medium">
+                                {{ brand }}
+                            </button>
+                            <div v-if="filteredBrands.length === 0 && searchBrandQuery !== ''" class="px-4 py-3 text-gray-500 text-center">
+                                見つかりませんでした
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-8">
+                            <button @click="selectBrand(null)" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors">
+                                メーカー未選択で続行する
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: 分野選択 -->
+                    <div v-if="currentStep === 2" class="absolute w-full left-0 px-6 sm:px-10">
+                        <h2 class="text-xl font-bold mb-6 text-center text-gray-700">
+                            {{ selectedBrand ? selectedBrand + ' の' : 'すべての' }}分野を選択してください
+                        </h2>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+                            <button v-for="category in availableCategories" :key="category" @click="selectCategory(category)"
+                                    class="py-3 px-2 border-2 rounded-xl font-medium transition-all duration-200"
+                                    :class="selectedCategory === category ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-gray-50'">
+                                {{ category }}
+                            </button>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <button @click="currentStep = 1" class="px-5 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors">戻る</button>
+                            <button @click="currentStep = 3" :disabled="!selectedCategory" 
+                                    class="px-8 py-2.5 bg-blue-600 text-white rounded-lg font-bold shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                次へ <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: 発売時期と価格入力 -->
+                    <div v-if="currentStep === 3" class="absolute w-full left-0 px-6 sm:px-10">
+                        <h2 class="text-xl font-bold mb-6 text-center text-gray-700">発売時期と価格を入力してください</h2>
+                        
+                        <div class="space-y-5 mb-8">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">発売時期 (必須)</label>
+                                <input type="month" v-model="releaseDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">メーカー直販価格 / 発売時価格 (必須)</label>
+                                <div class="relative">
+                                    <input type="number" v-model="msrpPrice" placeholder="例: 150000" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <span class="absolute right-4 top-2 text-gray-500">円</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">実店舗 最安価格 (任意)</label>
+                                    <div class="relative">
+                                        <input type="number" v-model="storePrice" placeholder="空欄なら自動推測" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <span class="absolute right-4 top-2 text-gray-500">円</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">オンライン 最安価格 (任意)</label>
+                                    <div class="relative">
+                                        <input type="number" v-model="onlinePrice" placeholder="空欄なら自動推測" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <span class="absolute right-4 top-2 text-gray-500">円</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <button @click="currentStep = 2" class="px-5 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors">戻る</button>
+                            <button @click="validateAndNextStep3" :disabled="!releaseDate || !msrpPrice" 
+                                    class="px-8 py-2.5 bg-blue-600 text-white rounded-lg font-bold shadow-md hover:bg-blue-700 disabled:opacity-50 transition-all">
+                                次へ <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: 値引きと還元 -->
+                    <div v-if="currentStep === 4" class="absolute w-full left-0 px-6 sm:px-10 overflow-y-auto max-h-[500px]">
+                        <h2 class="text-xl font-bold mb-4 text-center text-gray-700">さらなる値引き・還元情報を追加</h2>
+                        
+                        <!-- 値引き -->
+                        <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <h3 class="font-bold text-gray-700 mb-3"><i class="fa-solid fa-arrow-trend-down text-red-500 mr-2"></i>直接値引き</h3>
+                            <div v-for="(discount, index) in discounts" :key="'d'+index" class="flex gap-2 mb-2 items-center">
+                                <input type="number" v-model="discount.amount" placeholder="金額" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                                <span class="text-gray-600">円</span>
+                                <button @click="discounts.splice(index, 1)" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                            <button @click="discounts.push({amount: null})" class="text-sm text-blue-600 font-bold hover:underline mt-1"><i class="fa-solid fa-plus mr-1"></i>値引きを追加</button>
+                        </div>
+
+                        <!-- 還元 -->
+                        <div class="mb-8 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <h3 class="font-bold text-gray-700 mb-3"><i class="fa-solid fa-coins text-yellow-500 mr-2"></i>購入後還元</h3>
+                            <div v-for="(reward, index) in rewards" :key="'r'+index" class="flex flex-col gap-2 mb-4 p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                                <div class="flex gap-2 items-center">
+                                    <input type="number" v-model="reward.amount" placeholder="金額/ポイント数" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                                    <select v-model="reward.type" class="px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                                        <option value="cash">キャッシュバック(現金)</option>
+                                        <option value="point">ポイント還元</option>
+                                    </select>
+                                    <button @click="rewards.splice(index, 1)" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                                <div v-if="reward.type === 'point'" class="flex items-center gap-3 mt-1 pl-1">
+                                    <span class="text-xs text-gray-500">そのポイントを使う予定はありますか？</span>
+                                    <label class="text-sm flex items-center gap-1 cursor-pointer"><input type="radio" :name="'use'+index" :value="true" v-model="reward.willUse" class="accent-blue-600"> ある</label>
+                                    <label class="text-sm flex items-center gap-1 cursor-pointer"><input type="radio" :name="'use'+index" :value="false" v-model="reward.willUse" class="accent-blue-600"> ない</label>
+                                </div>
+                            </div>
+                            <button @click="rewards.push({amount: null, type: 'cash', willUse: true})" class="text-sm text-blue-600 font-bold hover:underline"><i class="fa-solid fa-plus mr-1"></i>還元を追加</button>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <button @click="currentStep = 3" class="px-5 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors">戻る</button>
+                            <button @click="currentStep = 5" class="px-8 py-2.5 bg-blue-600 text-white rounded-lg font-bold shadow-md hover:bg-blue-700 transition-all">
+                                次へ <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 5: 質問による状況チェック -->
+                    <div v-if="currentStep === 5" class="absolute w-full left-0 px-6 sm:px-10 h-full overflow-y-auto" style="max-height: 400px; padding-bottom: 60px;">
+                        <h2 class="text-xl font-bold mb-2 text-center text-gray-700">最終チェック (全10問)</h2>
+                        <p class="text-xs text-center text-gray-500 mb-6">あなたの状況に合わせて選択してください</p>
+                        
+                        <div class="space-y-6">
+                            <div v-for="(q, qIndex) in questions" :key="qIndex" class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <p class="font-bold text-gray-800 mb-3 text-sm">Q{{ qIndex + 1 }}. {{ q.text }}</p>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <label v-for="(opt, oIndex) in q.options" :key="oIndex" 
+                                           class="flex-1 text-center py-2 px-3 rounded-lg border cursor-pointer transition-colors text-sm font-medium"
+                                           :class="q.answer === opt.score ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-100'">
+                                        <input type="radio" :name="'q'+qIndex" :value="opt.score" v-model="q.answer" class="hidden">
+                                        {{ opt.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between mt-8 relative bg-white pt-4">
+                            <button @click="currentStep = 4" class="px-5 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors">戻る</button>
+                            <button @click="calculateFinalScore" :disabled="!allQuestionsAnswered" 
+                                    class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg font-bold shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition-all">
+                                判定結果を見る <i class="fa-solid fa-chart-pie ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 6: 結果発表 -->
+                    <div v-if="currentStep === 6" class="absolute w-full left-0 px-6 sm:px-10 text-center pb-8">
+                        <h2 class="text-2xl font-black mb-1 text-gray-800">判定結果</h2>
+                        <p class="text-sm font-bold mb-6" :class="verdictColor">{{ verdictTitle }}</p>
+                        
+                        <div class="chart-container mb-6">
+                            <canvas id="scoreChart"></canvas>
+                            <div class="chart-center-text">
+                                <span class="text-5xl font-black text-gray-800">{{ totalScore }}</span>
+                                <span class="text-lg text-gray-500 font-bold">/100</span>
+                                <p class="text-xs text-gray-400 mt-1">総合スコア</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-xl p-4 mb-6 shadow-inner text-left max-w-md mx-auto">
+                            <p class="text-sm text-gray-700 font-bold mb-2 border-b pb-1">アドバイス</p>
+                            <p class="text-sm text-gray-700 leading-relaxed">{{ adviceText }}</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 max-w-md mx-auto mb-8">
+                            <div class="bg-white border border-gray-200 rounded-lg p-3 text-center shadow-sm">
+                                <p class="text-xs text-gray-500 mb-1">実質負担額</p>
+                                <p class="text-lg font-bold text-blue-700">{{ formatPrice(calculatedRealCost) }} <span class="text-xs">円</span></p>
+                            </div>
+                            <div class="bg-white border border-gray-200 rounded-lg p-3 text-center shadow-sm">
+                                <p class="text-xs text-gray-500 mb-1">妥当ライン(目安)</p>
+                                <p class="text-lg font-bold text-gray-600">{{ formatPrice(calculatedFairPrice) }} <span class="text-xs">円</span></p>
+                            </div>
+                        </div>
+
+                        <button @click="resetApp" class="text-gray-500 hover:text-gray-800 underline text-sm transition-colors">
+                            最初からやり直す
+                        </button>
+                    </div>
+
+                </transition>
             </div>
-            <div class="need-option">
-              <input type="radio" name="priceScore" id="ps2" value="20" onchange="updateScoreDisplay()">
-              <label class="need-option-label" for="ps2">最安値より＋10%〜20% 高い</label>
-            </div>
-            <div class="need-option">
-              <input type="radio" name="priceScore" id="ps3" value="0" onchange="updateScoreDisplay()">
-              <label class="need-option-label" for="ps3">最安値より＋20% 以上高い</label>
-            </div>
-          </div>
-          <div class="result-row" style="margin-top: 15px;">
-            <span class="result-label">価格スコア</span>
-            <span class="result-value" id="priceScoreDisplay">0 点</span>
-          </div>
         </div>
-
-        <!-- Need Scores -->
-        <div style="margin-top: 20px;">
-          <div class="need-question">
-            <strong>2.1 代替手段</strong>
-            <div class="need-options">
-              <div class="need-option"><input type="radio" name="need1" value="10" onchange="updateScoreDisplay()"> <label class="need-option-label">全く持っていない</label></div>
-              <div class="need-option"><input type="radio" name="need1" value="5" onchange="updateScoreDisplay()"> <label class="need-option-label">あるが性能/故障で支障あり</label></div>
-              <div class="need-option"><input type="radio" name="need1" value="0" onchange="updateScoreDisplay()"> <label class="need-option-label">十分使えるが新しいのが欲しい</label></div>
-            </div>
-          </div>
-
-          <div class="need-question">
-            <strong>2.2 時間削減・QOL 効果</strong>
-            <div class="need-options">
-              <div class="need-option"><input type="radio" name="need2" value="10" onchange="updateScoreDisplay()"> <label class="need-option-label">劇的な時短・ストレス軽減</label></div>
-              <div class="need-option"><input type="radio" name="need2" value="5" onchange="updateScoreDisplay()"> <label class="need-option-label">多少の効果あり</label></div>
-              <div class="need-option"><input type="radio" name="need2" value="0" onchange="updateScoreDisplay()"> <label class="need-option-label">趣味・自己満足のみ</label></div>
-            </div>
-          </div>
-
-          <div class="need-question">
-            <strong>2.3 使用頻度のリアル度</strong>
-            <div class="need-options">
-              <div class="need-option"><input type="radio" name="need3" value="10" onchange="updateScoreDisplay()"> <label class="need-option-label">ほぼ毎日</label></div>
-              <div class="need-option"><input type="radio" name="need3" value="5" onchange="updateScoreDisplay()"> <label class="need-option-label">週 2〜3 回</label></div>
-              <div class="need-option"><input type="radio" name="need3" value="0" onchange="updateScoreDisplay()"> <label class="need-option-label">月に数回・飾りに近くなりそう</label></div>
-            </div>
-          </div>
-
-          <div class="need-question">
-            <strong>2.4 冷却期間</strong>
-            <div class="need-options">
-              <div class="need-option"><input type="radio" name="need4" value="10" onchange="updateScoreDisplay()"> <label class="need-option-label">1 ヶ月以上熟考</label></div>
-              <div class="need-option"><input type="radio" name="need4" value="5" onchange="updateScoreDisplay()"> <label class="need-option-label">1 週間〜1 ヶ月</label></div>
-              <div class="need-option"><input type="radio" name="need4" value="0" onchange="updateScoreDisplay()"> <label class="need-option-label">数日以内（衝動買いの危険大）</label></div>
-            </div>
-          </div>
-
-          <div class="need-question">
-            <strong>2.5 予算・投資影響</strong>
-            <div class="need-options">
-              <div class="need-option"><input type="radio" name="need5" value="10" onchange="updateScoreDisplay()"> <label class="need-option-label">余剰資金で即金対応</label></div>
-              <div class="need-option"><input type="radio" name="need5" value="5" onchange="updateScoreDisplay()"> <label class="need-option-label">今月の節約が必要</label></div>
-              <div class="need-option"><input type="radio" name="need5" value="-10" onchange="updateScoreDisplay()"> <label class="need-option-label">分割・ローンが必要／投資に回すべき</label></div>
-            </div>
-          </div>
-
-          <div class="result-row" style="margin-top: 20px; padding-top: 15px; border-top: 2px solid var(--border-color);">
-            <span class="result-label">必要性・活用度スコア</span>
-            <span class="result-value" id="needScoreDisplay">0 点</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Overall Result -->
-      <div class="section-card">
-        <h3 class="section-title">🏆 総合判定結果</h3>
-        
-        <div class="score-card">
-          <div class="score-value" id="overallScore">0</div>
-          <div class="score-label" id="scoreLevel">_</div>
-          <div class="rank-text" id="rankText">判定中...</div>
-          <div class="recommendation" id="recommendation"></div>
-        </div>
-
-        <!-- Investment Calculator for F Rank -->
-        <div id="investmentCalculator" class="hidden">
-          <div class="investment-calc">
-            <strong>⚠️ 投資機会損失シミュレーション</strong><br><br>
-            もしこの実質負担額（<span id="invBase">¥0</span>）を購入せず、年利 5% で 20 年間運用した場合:<br>
-            <div style="font-size: 1.3rem; font-weight: 700; margin-top: 10px;">約 ￥<span id="invResult">0</span></div>
-            <p style="margin: 10px 0 0 0; font-size: 0.9rem;">本当に今、このガジェットと交換しますか？</p>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- History Tab -->
-    <div id="history-tab" class="hidden">
-      <div class="section-card">
-        <h3 class="section-title">📋 過去の購入判断履歴</h3>
-        <div style="text-align: center; margin-bottom: 15px;">
-          <button type="button" class="btn-secondary" onclick="clearHistory()">履歴をクリア</button>
-        </div>
-        <div class="history-card" id="historyList">
-          <p style="text-align: center; color: #95a5a6;">履歴がありません</p>
-        </div>
-      </div>
-    </div>
-  </div>
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
-  <script>
-    // Initialize on load
-    document.addEventListener('DOMContentLoaded', function() {
-      loadDiscountItems();
-      loadPointItems();
-      loadHistory();
-      updateScoreDisplay();
-      calculateRealTimePrice();
-    });
+        createApp({
+            setup() {
+                const currentStep = ref(1);
+                
+                // データ保持
+                const csvData = ref([]);
+                const allBrands = ref([]);
+                const allCategories = ref([]);
+                
+                // ユーザー入力ステート
+                const searchBrandQuery = ref('');
+                const selectedBrand = ref(null);
+                const selectedCategory = ref(null);
+                
+                const releaseDate = ref('');
+                const msrpPrice = ref(null);
+                const storePrice = ref(null);
+                const onlinePrice = ref(null);
+                
+                const discounts = ref([]);
+                const rewards = ref([]);
 
-    // Tab Switching
-    function switchTab(tabName) {
-      ['calculator', 'history'].forEach(t => {
-        const el = document.getElementById(t + '-tab');
-        const btn = document.querySelector(`button[onclick="switchTab('${t}')"]`);
-        if (t === tabName) {
-          el.classList.remove('hidden');
-          btn.classList.add('active');
-        } else {
-          el.classList.add('hidden');
-          btn.classList.remove('active');
-        }
-      });
-      if (tabName === 'history') {
-        renderHistory();
-      }
-    }
+                // 質問リスト
+                const questions = ref([
+                    { text: "この製品の使用頻度は？", options: [{label: "毎日", score: 2}, {label: "週数回", score: 1}, {label: "月数回以下", score: 0}], answer: null },
+                    { text: "欲しいと思ってからどのくらい？", options: [{label: "半年以上", score: 2}, {label: "1ヶ月〜半年", score: 1}, {label: "直感/最近", score: 0}], answer: null },
+                    { text: "現在、代替手段はありますか？", options: [{label: "ない/壊れた", score: 2}, {label: "あるが不満", score: 1}, {label: "十分使える", score: 0}], answer: null },
+                    { text: "生活の質は大きく向上しますか？", options: [{label: "劇的に向上", score: 2}, {label: "少し向上", score: 1}, {label: "変わらない", score: 0}], answer: null },
+                    { text: "予算（無理なく支払えるか）は？", options: [{label: "余裕で一括", score: 2}, {label: "少し節約", score: 1}, {label: "厳しい/分割", score: 0}], answer: null },
+                    { text: "置き場所や設置環境は？", options: [{label: "完璧に準備済", score: 2}, {label: "工夫すれば", score: 1}, {label: "未確認", score: 0}], answer: null },
+                    { text: "半年以内に後継機の噂は？", options: [{label: "ない/出たばかり", score: 2}, {label: "わからない", score: 1}, {label: "出る予定あり", score: 0}], answer: null },
+                    { text: "デザインは好みに合っていますか？", options: [{label: "一目惚れ/完璧", score: 2}, {label: "まあまあ", score: 1}, {label: "気にしない", score: 0}], answer: null },
+                    { text: "家族や同居人も賛成/活用しますか？", options: [{label: "大賛成/皆で使う", score: 2}, {label: "自分専用", score: 1}, {label: "反対されている", score: 0}], answer: null },
+                    { text: "今見送った場合、後悔しますか？", options: [{label: "絶対後悔する", score: 2}, {label: "少し後悔するかも", score: 1}, {label: "忘れると思う", score: 0}], answer: null },
+                ]);
 
-    // Add Discount Item
-    function addDiscountItem() {
-      const discountList = document.getElementById('discountList');
-      const count = discountList.querySelectorAll('.dynamic-item').length;
-      const id = 'discount_' + count;
-      
-      const itemHTML = `
-        <div class="dynamic-item discount-group" data-id="${id}">
-          <input type="text" class="discount-item-name" placeholder="例：クーポン 1,000 円" data-id="${id}">
-          <select class="discount-item-type" data-id="${id}" style="width: 80px;">
-            <option value="discount">値引き</option>
-            <option value="point">ポイント</option>
-          </select>
-          <input type="number" class="discount-item-amount" data-id="${id}" placeholder="例：1,000" min="0" step="100">
-          <select class="discount-item-use" data-id="${id}" style="width: 80px;">
-            <option value="1.0">使用予定あり</option>
-            <option value="0.5">使用予定乏しい（50% 評価）</option>
-          </select>
-          <button type="button" class="btn-remove" onclick="removeDiscountItem('${id}')" style="position: absolute; right: 10px; padding: 4px 8px; font-size: 0.8rem;">×</button>
-        </div>
-      `;
-      discountList.insertAdjacentHTML('beforeend', itemHTML);
-      saveDiscountItems();
-    }
+                // 計算結果ステート
+                const totalScore = ref(0);
+                const calculatedRealCost = ref(0);
+                const calculatedFairPrice = ref(0);
+                const verdictTitle = ref('');
+                const verdictColor = ref('');
+                const adviceText = ref('');
+                
+                let chartInstance = null;
 
-    // Remove Discount Item
-    function removeDiscountItem(id) {
-      const discountList = document.getElementById('discountList');
-      const item = discountList.querySelector(`.discount-group[data-id="${id}"]`);
-      if (item) {
-        item.remove();
-        saveDiscountItems();
-        calculateRealTimePrice();
-      }
-    }
+                // --- データの初期読み込み ---
+                onMounted(() => {
+                    Papa.parse('brand_category_price_decline_summary_1.0.csv', {
+                        download: true,
+                        header: true,
+                        dynamicTyping: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            if(results.data && results.data.length > 0) {
+                                csvData.value = results.data;
+                                extractFilterData();
+                            }
+                        },
+                        error: (err) => {
+                            console.warn("CSVの読み込みに失敗しました。推測モードで動作します。", err);
+                        }
+                    });
+                });
 
-    // Load/Save Discount Items (LocalStorage)
-    function getDiscountItems() {
-      return JSON.parse(localStorage.getItem('discountItems') || '[]');
-    }
+                const extractFilterData = () => {
+                    const bSet = new Set();
+                    const cSet = new Set();
+                    csvData.value.forEach(row => {
+                        // カラム名の揺らぎ対応
+                        const b = row['Brand'] || row['brand'] || row['メーカー'] || row['ブランド'];
+                        const c = row['Category'] || row['category'] || row['分野'] || row['カテゴリ'];
+                        if(b) bSet.add(b);
+                        if(c) cSet.add(c);
+                    });
+                    allBrands.value = Array.from(bSet).sort();
+                    allCategories.value = Array.from(cSet).sort();
+                };
 
-    function saveDiscountItems() {
-      const discountList = document.getElementById('discountList');
-      const items = [];
-      discountList.querySelectorAll('.discount-group').forEach(group => {
-        items.push({
-          id: group.dataset.id,
-          name: group.querySelector('.discount-item-name').value,
-          type: group.querySelector('.discount-item-type').value,
-          amount: parseInt(group.querySelector('.discount-item-amount').value) || 0,
-          use: parseFloat(group.querySelector('.discount-item-use').value)
-        });
-      });
-      localStorage.setItem('discountItems', JSON.stringify(items));
-    }
+                // --- COMPUTED PROPS ---
+                const filteredBrands = computed(() => {
+                    if(!searchBrandQuery.value) return allBrands.value;
+                    const q = searchBrandQuery.value.toLowerCase();
+                    return allBrands.value.filter(b => b.toLowerCase().includes(q));
+                });
 
-    function loadDiscountItems() {
-      const items = getDiscountItems();
-      const discountList = document.getElementById('discountList');
-      discountList.innerHTML = '';
-      items.forEach((item, index) => {
-        const id = 'discount_' + index;
-        const itemHTML = `
-          <div class="dynamic-item discount-group" data-id="${id}">
-            <input type="text" class="discount-item-name" placeholder="例：クーポン 1,000 円" data-id="${id}" value="${item.name}">
-            <select class="discount-item-type" data-id="${id}" style="width: 80px;">
-              <option value="discount" ${item.type === 'discount' ? 'selected' : ''}>値引き</option>
-              <option value="point" ${item.type === 'point' ? 'selected' : ''}>ポイント</option>
-            </select>
-            <input type="number" class="discount-item-amount" data-id="${id}" placeholder="例：1,000" min="0" step="100" value="${item.amount}">
-            <select class="discount-item-use" data-id="${id}" style="width: 80px;">
-              <option value="1.0" ${item.use === 1.0 ? 'selected' : ''}>使用予定あり</option>
-              <option value="0.5" ${item.use === 0.5 ? 'selected' : ''}>使用予定乏しい（50% 評価）</option>
-            </select>
-            <button type="button" class="btn-remove" onclick="removeDiscountItem('${id}')" style="position: absolute; right: 10px; padding: 4px 8px; font-size: 0.8rem;">×</button>
-          </div>
-        `;
-        discountList.insertAdjacentHTML('beforeend', itemHTML);
-      });
-    }
+                const availableCategories = computed(() => {
+                    if(!selectedBrand.value || csvData.value.length === 0) return allCategories.value.length > 0 ? allCategories.value : ['テレビ', '冷蔵庫', '洗濯機', 'エアコン', 'PC', 'スマホ', 'その他'];
+                    
+                    const cSet = new Set();
+                    csvData.value.forEach(row => {
+                        const b = row['Brand'] || row['brand'] || row['メーカー'] || row['ブランド'];
+                        const c = row['Category'] || row['category'] || row['分野'] || row['カテゴリ'];
+                        if(b === selectedBrand.value && c) cSet.add(c);
+                    });
+                    return Array.from(cSet).sort();
+                });
 
-    // Add Point Item
-    function addPointItem() {
-      const pointsList = document.getElementById('pointsList');
-      const count = pointsList.querySelectorAll('.dynamic-item').length;
-      const id = 'point_' + count;
-      
-      const itemHTML = `
-        <div class="dynamic-item point-group" data-id="${id}">
-          <input type="text" class="point-item-name" placeholder="例：PayPay 3%" data-id="${id}" value="${id.replace('_', '')}">
-          <input type="number" class="point-item-percent" data-id="${id}" placeholder="例：3" min="0" max="100" style="width: 60px;">
-          <span class="point-item-percent-label" data-id="${id}">%</span>
-          <input type="number" class="point-item-amount" data-id="${id}" placeholder="1,000 の場合" min="0" step="1">
-          <span class="point-item-total-label" data-id="${id}">＝</span>
-          <input type="number" class="point-item-total" data-id="${id}" placeholder="例：30" min="0" readonly style="background: #f0f0f0;">
-          <select class="point-item-use" data-id="${id}" style="width: 80px;">
-            <option value="1.0">使用予定あり</option>
-            <option value="0.5">使用予定乏しい（50% 評価）</option>
-          </select>
-          <button type="button" class="btn-remove" onclick="removePointItem('${id}')" style="position: absolute; right: 10px; padding: 4px 8px; font-size: 0.8rem;">×</button>
-        </div>
-      `;
-      pointsList.insertAdjacentHTML('beforeend', itemHTML);
-      savePointItems();
-    }
+                const allQuestionsAnswered = computed(() => {
+                    return questions.value.every(q => q.answer !== null);
+                });
 
-    // Remove Point Item
-    function removePointItem(id) {
-      const pointsList = document.getElementById('pointsList');
-      const item = pointsList.querySelector(`.point-group[data-id="${id}"]`);
-      if (item) {
-        item.remove();
-        savePointItems();
-        calculateRealTimePrice();
-      }
-    }
+                // --- METHODS ---
+                const selectBrand = (brand) => {
+                    selectedBrand.value = brand;
+                    currentStep.value = 2;
+                };
 
-    // Load/Save Point Items
-    function getPointItems() {
-      return JSON.parse(localStorage.getItem('pointItems') || '[]');
-    }
+                const selectCategory = (category) => {
+                    selectedCategory.value = category;
+                };
 
-    function savePointItems() {
-      const pointsList = document.getElementById('pointsList');
-      const items = [];
-      pointsList.querySelectorAll('.point-group').forEach(group => {
-        items.push({
-          id: group.dataset.id,
-          name: group.querySelector('.point-item-name').value,
-          percent: parseFloat(group.querySelector('.point-item-percent').value) || 0,
-          amount: parseInt(group.querySelector('.point-item-amount').value) || 0,
-          use: parseFloat(group.querySelector('.point-item-use').value)
-        });
-      });
-      localStorage.setItem('pointItems', JSON.stringify(items));
-    }
+                const validateAndNextStep3 = () => {
+                    if(releaseDate.value && msrpPrice.value > 0) {
+                        currentStep.value = 4;
+                    }
+                };
 
-    // Calculate Real Time Price
-    function calculateRealTimePrice() {
-      const basePrice = parseInt(document.getElementById('basePrice').value) || 0;
-      const productNameSearch = document.getElementById('productNameSearch').value;
-      
-      // Calculate discount total
-      let discountTotal = 0;
-      getDiscountItems().forEach(item => {
-        if (item.type === 'discount') {
-          discountTotal += item.amount;
-        } else if (item.type === 'point') {
-          const pointAmount = Math.floor((basePrice * item.percent / 100) * item.use);
-          discountTotal += pointAmount;
-        }
-      });
-      
-      // Calculate effective points
-      let effectivePoints = 0;
-      getPointItems().forEach(item => {
-        if (item.type === 'point') {
-          effectivePoints += Math.floor((basePrice * item.percent / 100) * item.use);
-        }
-      });
-      
-      document.getElementById('totalPoints').textContent = effectivePoints.toLocaleString() + ' pt';
-      document.getElementById('totalDiscount').textContent = '¥' + discountTotal.toLocaleString();
-      
-      // Real price
-      const realPrice = basePrice - discountTotal;
-      document.getElementById('realPrice').textContent = '¥' + realPrice.toLocaleString();
-      
-      // Price difference
-      const marketPrice = parseInt(document.getElementById('marketPrice').value) || 0;
-      if (marketPrice > 0) {
-        const priceDiff = realPrice - marketPrice;
-        const priceDiffPercent = (priceDiff / marketPrice * 100).toFixed(1);
-        document.getElementById('priceDiff').textContent = (priceDiff >= 0 ? '+' : '') + '¥' + Math.abs(Math.floor(priceDiff)).toLocaleString();
-        document.getElementById('priceDiffPercent').textContent = priceDiffPercent + '%';
-        document.getElementById('priceScoreText').textContent = '実質「' + realPrice.toLocaleString() + ' 円」と市場「' + marketPrice.toLocaleString() + ' 円」を比較';
-        
-        // Show search links
-        if (productNameSearch) {
-          document.getElementById('searchLinks').style.display = 'block';
-          document.getElementById('kakakuSearchLink').href = 'https://kakaku.com/search_results/' + encodeURIComponent(productNameSearch) + '/';
-          document.getElementById('googleShoppingLink').href = 'https://shopping.google.com/?q=' + encodeURIComponent(productNameSearch);
-        }
-      } else {
-        document.getElementById('priceDiff').textContent = '－';
-        document.getElementById('priceDiffPercent').textContent = '0%';
-        document.getElementById('priceScoreText').textContent = '実質負担額：' + realPrice.toLocaleString() + ' 円（市場比較対象外）';
-        document.getElementById('searchLinks').style.display = 'none';
-      }
-    }
+                // CSVまたはデフォルトロジックから残価率を取得
+                const getDeclineRate = (yearsElapsed) => {
+                    if (yearsElapsed < 1) return 1.0; // 1年未満は値下がりなし(100%)
 
-    // Price Score Display
-    function updateScoreDisplay() {
-      const marketPrice = parseInt(document.getElementById('marketPrice').value) || 0;
-      const realPrice = parseInt(document.getElementById('realPrice').textContent.replace(/[^0-9]/g, '')) || 0;
-      
-      let priceScore = 0;
-      
-      if (marketPrice > 0) {
-        const priceDiffPercent = realPrice / marketPrice * 100;
-        if (priceDiffPercent <= 103) priceScore = 50;
-        else if (priceDiffPercent <= 110) priceScore = 35;
-        else if (priceDiffPercent <= 120) priceScore = 20;
-        else priceScore = 0;
-      }
-      
-      // Need score from current selections
-      let needScore = 0;
-      ['need1', 'need2', 'need3', 'need4', 'need5'].forEach(name => {
-        const selected = document.querySelector(`input[name="${name}"]:checked`);
-        if (selected) {
-          needScore += parseInt(selected.value);
-        }
-      });
-      
-      document.getElementById('priceScoreDisplay').textContent = priceScore + ' 点';
-      document.getElementById('needScoreDisplay').textContent = needScore + ' 点';
-      
-      // Calculate overall score
-      const overallScore = priceScore + needScore;
-      const overallLabel = overallScore >= 85 ? 'S' : (overallScore >= 70 ? 'A' : (overallScore >= 50 ? 'B' : 'F'));
-      document.getElementById('overallScore').textContent = overallScore;
-      
-      // Set score level color
-      const scoreValueElement = document.querySelector('.score-value');
-      scoreValueElement.className = 'score-value score-' + overallLabel.toLowerCase();
-      document.getElementById('scoreLevel').textContent = overallLabel + ' ランク';
-      
-      // Rank text and recommendation
-      const rankText = {
-        'S': '【即買い推奨】市場最安値圏かつ必要性も抜群。迷わず買いです！',
-        'A': '【購入検討】十分に買い。ポイント還元日やセール日を狙いましょう。',
-        'B': '【様子見】実質価格が高いか、物欲が先行しています。1 週間ステイ。',
-        'F': '【見送り（ただの物欲）】購入を見送りましょう！'
-      };
-      document.getElementById('rankText').textContent = rankText[overallLabel];
-      
-      const recommendation = document.getElementById('recommendation');
-      recommendation.className = 'recommendation recommendation-' + overallLabel.toLowerCase();
-      
-      // F rank investment calculator
-      const investmentCalculator = document.getElementById('investmentCalculator');
-      if (overallLabel === 'F') {
-        investmentCalculator.classList.remove('hidden');
-        const realPrice = parseInt(document.getElementById('realPrice').textContent.replace(/[^0-9]/g, '')) || 0;
-        const invBase = document.getElementById('invBase');
-        if (invBase) invBase.textContent = '¥' + realPrice.toLocaleString();
-        
-        // 5% 20 years compound interest
-        const invResult = Math.floor(realPrice * Math.pow(1.05, 20));
-        document.getElementById('invResult').textContent = invResult.toLocaleString();
-      } else {
-        investmentCalculator.classList.add('hidden');
-      }
-    }
+                    let rate = null;
+                    if(csvData.value.length > 0) {
+                        // 対象データの絞り込み
+                        let targetRows = csvData.value.filter(row => {
+                            const c = row['Category'] || row['category'] || row['分野'] || row['カテゴリ'];
+                            return c === selectedCategory.value;
+                        });
+                        
+                        if(selectedBrand.value) {
+                            const brandRows = targetRows.filter(row => {
+                                const b = row['Brand'] || row['brand'] || row['メーカー'] || row['ブランド'];
+                                return b === selectedBrand.value;
+                            });
+                            if(brandRows.length > 0) targetRows = brandRows;
+                        }
 
-    // Render History
-    function renderHistory() {
-      const history = JSON.parse(localStorage.getItem('purchaseHistory') || '[]');
-      const historyList = document.getElementById('historyList');
-      
-      if (history.length === 0) {
-        historyList.innerHTML = '<p style="text-align: center; color: #95a5a6;">履歴がありません</p>';
-        return;
-      }
-      
-      historyList.innerHTML = '';
-      // Sort by date (newest first)
-      const sortedHistory = [...history].sort((a, b) => b.date - a.date);
-      
-      sortedHistory.forEach(item => {
-        const rankEmoji = {
-          'S': '🏆',
-          'A': '🥈',
-          'B': '🤔',
-          'F': '❌'
-        };
-        
-        const html = `
-          <div class="history-item" style="border-left-color: var(--${item.rank}-color);">
-            <div class="item-header">
-              <h4>${item.itemName}</h4>
-              <span class="history-date">${new Date(item.date).toLocaleString('ja-JP')}</span>
-            </div>
-            <div class="item-details">
-              <div class="item-row">
-                <span>${rankEmoji[item.rank]} <strong>ランク：${item.rank}</strong></span>
-                <span>総合スコア：<strong>${item.overallScore} 点</strong></span>
-              </div>
-              <div class="item-row">
-                <span class="text-muted">実質価格：¥${item.realPrice.toLocaleString()}</span>
-                <span class="price-compare ${item.rank === 'S' ? 'price-good' : ''}">
-                  ${item.rank === 'S' ? '市場最安値圏' : '最安値より+' + item.priceDiffPercent + '% 高い'}
-                </span>
-              </div>
-              <div class="item-row">
-                <span>価格スコア：${item.priceScore} 点</span>
-                <span>活用度スコア：${item.needScore} 点</span>
-              </div>
-              ${item.investmentWarning ? `<div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; font-size: 0.8rem;">⚠️ 投資機会損失：約￥${item.investmentWarning}</div>` : ''}
-            </div>
-          </div>
-        `;
-        historyList.insertAdjacentHTML('beforeend', html);
-      });
-    }
+                        if(targetRows.length > 0) {
+                            let sumRate = 0;
+                            let count = 0;
+                            // 複数行ある場合は平均を取る（メーカー未選択時など）
+                            targetRows.forEach(row => {
+                                // カラム名に "1", "1年", "Year1" などが含まれるものを探す
+                                const keys = Object.keys(row);
+                                const yearKey = keys.find(k => k.match(new RegExp(`^${yearsElapsed}$|${yearsElapsed}年|year\\s*${yearsElapsed}`, 'i')));
+                                
+                                if(yearKey && typeof row[yearKey] === 'number') {
+                                    sumRate += row[yearKey];
+                                    count++;
+                                }
+                            });
+                            if(count > 0) {
+                                rate = sumRate / count;
+                            }
+                        }
+                    }
 
-    // Save Purchase History
-    function savePurchaseHistory(item) {
-      let history = JSON.parse(localStorage.getItem('purchaseHistory') || '[]');
-      history.push(item);
-      // Keep only last 50 entries
-      if (history.length > 50) {
-        history = history.slice(-50);
-      }
-      localStorage.setItem('purchaseHistory', JSON.stringify(history));
-      renderHistory();
-    }
+                    // CSVから取得できなかった場合のフォールバック（一般的な家電の下落率）
+                    if (rate === null) {
+                        // 1年:0.8, 2年:0.65, 3年:0.5, 4年:0.4 ...
+                        rate = Math.max(0.1, 1.0 - (yearsElapsed * 0.15) - 0.05);
+                    }
+                    
+                    // 率がパーセント表記(80など)の場合は小数に変換
+                    if(rate > 1.0) rate = rate / 100;
+                    
+                    return rate;
+                };
 
-    // Clear History
-    function clearHistory() {
-      localStorage.removeItem('purchaseHistory');
-      renderHistory();
-    }
+                const calculateFinalScore = () => {
+                    // --- 1. 価格補完と実質負担額の計算 ---
+                    const msrp = Number(msrpPrice.value);
+                    
+                    // 最安値の決定と推測
+                    let bestPrice = msrp;
+                    const sp = Number(storePrice.value);
+                    const op = Number(onlinePrice.value);
+                    
+                    if (sp > 0 && op > 0) bestPrice = Math.min(sp, op);
+                    else if (sp > 0) bestPrice = sp;
+                    else if (op > 0) bestPrice = op;
+                    else {
+                        // 入力がない場合は傾向から推測 (オンライン80%, 店舗90%と仮定し最安の80%を採用)
+                        bestPrice = msrp * 0.8;
+                    }
 
-    // Submit Purchase Decision
-    function submitDecision() {
-      const itemName = document.getElementById('itemName').value;
-      const marketPrice = parseInt(document.getElementById('marketPrice').value) || 0;
-      const realPrice = parseInt(document.getElementById('realPrice').textContent.replace(/[^0-9]/g, '')) || 0;
-      
-      let priceScore = 0;
-      if (marketPrice > 0) {
-        const priceDiffPercent = realPrice / marketPrice * 100;
-        if (priceDiffPercent <= 103) priceScore = 50;
-        else if (priceDiffPercent <= 110) priceScore = 35;
-        else if (priceDiffPercent <= 120) priceScore = 20;
-        else priceScore = 0;
-      }
-      
-      let needScore = 0;
-      ['need1', 'need2', 'need3', 'need4', 'need5'].forEach(name => {
-        const selected = document.querySelector(`input[name="${name}"]:checked`);
-        if (selected) {
-          needScore += parseInt(selected.value);
-        }
-      });
-      
-      const overallScore = priceScore + needScore;
-      const overallLabel = overallScore >= 85 ? 'S' : (overallScore >= 70 ? 'A' : (overallScore >= 50 ? 'B' : 'F'));
-      
-      // Calculate investment warning for F rank
-      let investmentWarning = null;
-      if (overallLabel === 'F') {
-        const invResult = Math.floor(realPrice * Math.pow(1.05, 20));
-        investmentWarning = invResult.toLocaleString();
-      }
-      
-      const historyItem = {
-        date: Date.now(),
-        itemName: itemName,
-        marketPrice: marketPrice,
-        realPrice: realPrice,
-        priceDiffPercent: marketPrice > 0 ? (realPrice - marketPrice) / marketPrice * 100 : 0,
-        priceScore: priceScore,
-        needScore: needScore,
-        overallScore: overallScore,
-        rank: overallLabel,
-        investmentWarning: investmentWarning
-      };
-      
-      savePurchaseHistory(historyItem);
-      
-      // Show result
-      switchTab('result');
-      updateScoreDisplay();
-    }
+                    // 値引き・還元計算
+                    let totalDiscount = discounts.value.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+                    let totalReward = rewards.value.reduce((sum, r) => {
+                        let amt = Number(r.amount || 0);
+                        if (r.type === 'point' && !r.willUse) {
+                            amt = amt * 0.5; // 使わないポイントは価値を半減
+                        }
+                        return sum + amt;
+                    }, 0);
 
-    // Calculate compound interest
-    function calculateCompoundInterest(principal, rate, years) {
-      return principal * Math.pow((1 + rate / 100), years);
-    }
-  </script>
+                    const realCost = Math.max(0, bestPrice - totalDiscount - totalReward);
+                    calculatedRealCost.value = Math.floor(realCost);
+
+                    // --- 2. 発売経過年数と妥当価格の計算 ---
+                    const today = new Date('2026-10-12'); // 指定された現在時刻
+                    const releaseParts = releaseDate.value.split('-');
+                    const rDate = new Date(releaseParts[0], releaseParts[1] - 1);
+                    
+                    let monthsElapsed = (today.getFullYear() - rDate.getFullYear()) * 12 + (today.getMonth() - rDate.getMonth());
+                    if (monthsElapsed < 0) monthsElapsed = 0;
+                    const yearsElapsed = Math.floor(monthsElapsed / 12);
+
+                    const declineRate = getDeclineRate(yearsElapsed);
+                    const fairPrice = msrp * declineRate;
+                    calculatedFairPrice.value = Math.floor(fairPrice);
+
+                    // --- 3. スコア算出 (価格 80点 + 質問 20点) ---
+                    let priceScore = 0;
+                    if (fairPrice > 0) {
+                        const ratio = realCost / fairPrice;
+                        // ratio <= 0.7 なら 80点, ratio == 1.0 なら 40点, ratio >= 1.3 なら 0点
+                        if (ratio <= 0.7) {
+                            priceScore = 80;
+                        } else if (ratio >= 1.3) {
+                            priceScore = 0;
+                        } else {
+                            // 線形補間
+                            priceScore = 40 + ((1.0 - ratio) / 0.3) * 40;
+                        }
+                    } else {
+                        priceScore = 40;
+                    }
+                    priceScore = Math.min(80, Math.max(0, Math.round(priceScore)));
+
+                    const qScore = questions.value.reduce((sum, q) => sum + (q.answer || 0), 0);
+                    
+                    totalScore.value = priceScore + qScore;
+
+                    // --- 4. 判定結果の生成 ---
+                    if (totalScore.value >= 80) {
+                        verdictTitle.value = "即買い推奨！";
+                        verdictColor.value = "text-green-600 text-2xl";
+                        adviceText.value = "今すぐ買うべきです！価格の落ち具合も還元条件も非常に優れており、あなたの必要性も完璧にマッチしています。これ以上待つと在庫切れや好条件終了のリスクがあります。";
+                    } else if (totalScore.value >= 60) {
+                        verdictTitle.value = "買い時です";
+                        verdictColor.value = "text-blue-600 text-xl";
+                        adviceText.value = "購入して問題ありません。価格は適正〜ややお得な水準にあり、欲しい時が買い時と言えます。生活の質向上のために決断しましょう。";
+                    } else if (totalScore.value >= 40) {
+                        verdictTitle.value = "ステイ推奨 (様子見)";
+                        verdictColor.value = "text-yellow-600 text-xl";
+                        adviceText.value = "少し待つことをお勧めします。価格がまだ下がりきっていないか、次期モデル発表の可能性があります。本当に今必要か、もう少し条件の良いお店がないか探してみましょう。";
+                    } else {
+                        verdictTitle.value = "今は見送りましょう";
+                        verdictColor.value = "text-red-600 text-xl";
+                        adviceText.value = "購入は見送るのが無難です。現在の実質負担額が妥当ラインより割高であるか、あなたの今のニーズにあまり合っていません。別の製品を検討するか、大幅な値下がりを待ちましょう。";
+                    }
+
+                    currentStep.value = 6;
+
+                    // グラフ描画
+                    nextTick(() => {
+                        drawChart();
+                    });
+                };
+
+                const drawChart = () => {
+                    const ctx = document.getElementById('scoreChart');
+                    if (!ctx) return;
+                    
+                    if (chartInstance) {
+                        chartInstance.destroy();
+                    }
+
+                    // スコアに応じたメインカラー
+                    let color = '#10B981'; // Green
+                    if(totalScore.value < 40) color = '#EF4444'; // Red
+                    else if(totalScore.value < 60) color = '#F59E0B'; // Yellow
+                    else if(totalScore.value < 80) color = '#3B82F6'; // Blue
+
+                    chartInstance = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            datasets: [{
+                                data: [totalScore.value, 100 - totalScore.value],
+                                backgroundColor: [color, '#E5E7EB'],
+                                borderWidth: 0,
+                                borderRadius: totalScore.value > 0 ? 10 : 0
+                            }]
+                        },
+                        options: {
+                            cutout: '82%',
+                            animation: {
+                                animateScale: true,
+                                animateRotate: true,
+                                duration: 2000,
+                                easing: 'easeOutCubic'
+                            },
+                            plugins: {
+                                tooltip: { enabled: false }
+                            },
+                            hover: { mode: null }
+                        }
+                    });
+                };
+
+                const formatPrice = (price) => {
+                    return new Intl.NumberFormat('ja-JP').format(price);
+                };
+
+                const resetApp = () => {
+                    currentStep.value = 1;
+                    searchBrandQuery.value = '';
+                    selectedBrand.value = null;
+                    selectedCategory.value = null;
+                    releaseDate.value = '';
+                    msrpPrice.value = null;
+                    storePrice.value = null;
+                    onlinePrice.value = null;
+                    discounts.value = [];
+                    rewards.value = [];
+                    questions.value.forEach(q => q.answer = null);
+                };
+
+                return {
+                    currentStep,
+                    searchBrandQuery,
+                    filteredBrands,
+                    availableCategories,
+                    selectedBrand,
+                    selectedCategory,
+                    selectBrand,
+                    selectCategory,
+                    releaseDate,
+                    msrpPrice,
+                    storePrice,
+                    onlinePrice,
+                    validateAndNextStep3,
+                    discounts,
+                    rewards,
+                    questions,
+                    allQuestionsAnswered,
+                    calculateFinalScore,
+                    totalScore,
+                    calculatedRealCost,
+                    calculatedFairPrice,
+                    verdictTitle,
+                    verdictColor,
+                    adviceText,
+                    formatPrice,
+                    resetApp
+                };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
