@@ -9,6 +9,8 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- スクリーンショット保存用のライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -18,21 +20,18 @@
             background-color: #f3f4f6;
             color: #1f2937;
         }
+        /* トランジションモードを out-in に変更したため、absolute は不要になります */
         .fade-enter-active, .fade-leave-active {
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
         .fade-enter-from, .fade-leave-to {
             opacity: 0;
-            transform: translateY(15px);
-        }
-        .fade-leave-active {
-            position: absolute;
-            width: 100%;
+            transform: translateY(10px);
         }
         .chart-container {
             position: relative;
-            width: 240px;
-            height: 240px;
+            width: 220px;
+            height: 220px;
             margin: 0 auto;
         }
         .chart-center-text {
@@ -44,7 +43,7 @@
         }
     </style>
 </head>
-<body>
+<body class="overflow-y-scroll">
     <div id="app" class="min-h-screen flex items-center justify-center p-4 sm:p-8">
         
         <div class="bg-white w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden relative">
@@ -65,11 +64,12 @@
                 </div>
             </div>
 
-            <div class="p-6 sm:p-10 relative min-h-[450px]">
-                <transition name="fade">
+            <div class="p-6 sm:p-10 relative">
+                <!-- mode="out-in" により、自然なスクロールが可能になります -->
+                <transition name="fade" mode="out-in">
                     
                     <!-- STEP 1: メーカー選択 -->
-                    <div v-if="currentStep === 1" class="absolute w-full left-0 px-6 sm:px-10">
+                    <div v-if="currentStep === 1" key="step1" class="w-full">
                         <h2 class="text-xl font-bold mb-6 text-center text-gray-700">検討しているメーカーを選択してください</h2>
                         <div class="relative mb-6">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
@@ -79,7 +79,7 @@
                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-lg">
                         </div>
                         
-                        <div class="max-h-56 overflow-y-auto mb-6 bg-gray-50 rounded-lg border border-gray-100 shadow-inner">
+                        <div class="max-h-60 overflow-y-auto mb-6 bg-gray-50 rounded-lg border border-gray-100 shadow-inner">
                             <button v-for="brand in filteredBrands" :key="brand.name" @click="selectBrand(brand)"
                                     class="w-full flex justify-between items-center px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors font-medium">
                                 <span>{{ brand.name }}</span>
@@ -98,7 +98,7 @@
                     </div>
 
                     <!-- STEP 2: 分野選択 -->
-                    <div v-if="currentStep === 2" class="absolute w-full left-0 px-6 sm:px-10">
+                    <div v-if="currentStep === 2" key="step2" class="w-full">
                         <h2 class="text-xl font-bold mb-6 text-center text-gray-700">
                             {{ selectedBrand ? selectedBrand.name + ' の' : 'すべての' }}分野を選択してください
                         </h2>
@@ -121,11 +121,10 @@
                     </div>
 
                     <!-- STEP 3: 発売時期と価格入力 -->
-                    <div v-if="currentStep === 3" class="absolute w-full left-0 px-6 sm:px-10">
+                    <div v-if="currentStep === 3" key="step3" class="w-full">
                         <h2 class="text-xl font-bold mb-6 text-center text-gray-700">発売時期と価格を入力してください</h2>
                         
                         <div class="space-y-5 mb-8">
-                            <!-- 発売時期を選択式に変更 -->
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-1">発売時期 (必須)</label>
                                 <div class="flex gap-4">
@@ -186,7 +185,7 @@
                     </div>
 
                     <!-- STEP 4: 値引きと還元 -->
-                    <div v-if="currentStep === 4" class="absolute w-full left-0 px-6 sm:px-10 overflow-y-auto max-h-[500px]">
+                    <div v-if="currentStep === 4" key="step4" class="w-full">
                         <h2 class="text-xl font-bold mb-4 text-center text-gray-700">さらなる値引き・還元情報を追加</h2>
                         
                         <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
@@ -228,7 +227,7 @@
                     </div>
 
                     <!-- STEP 5: 質問 -->
-                    <div v-if="currentStep === 5" class="absolute w-full left-0 px-6 sm:px-10 h-full overflow-y-auto" style="max-height: 400px; padding-bottom: 60px;">
+                    <div v-if="currentStep === 5" key="step5" class="w-full">
                         <h2 class="text-xl font-bold mb-2 text-center text-gray-700">最終チェック (全10問)</h2>
                         <p class="text-xs text-center text-gray-500 mb-6">状況に合わせて選択してください</p>
                         
@@ -256,38 +255,57 @@
                     </div>
 
                     <!-- STEP 6: 結果発表 -->
-                    <div v-if="currentStep === 6" class="absolute w-full left-0 px-6 sm:px-10 text-center pb-8">
-                        <h2 class="text-2xl font-black mb-1 text-gray-800">判定結果</h2>
-                        <p class="text-sm font-bold mb-6" :class="verdictColor">{{ verdictTitle }}</p>
+                    <div v-if="currentStep === 6" key="step6" class="w-full">
                         
-                        <div class="chart-container mb-6">
-                            <canvas id="scoreChart"></canvas>
-                            <div class="chart-center-text">
-                                <span class="text-5xl font-black text-gray-800">{{ totalScore }}</span>
-                                <span class="text-lg text-gray-500 font-bold">/100</span>
-                                <p class="text-xs text-gray-400 mt-1">総合スコア</p>
+                        <!-- 保存（スクリーンショット）対象エリア -->
+                        <div id="captureArea" class="bg-white p-2 rounded-xl">
+                            <div class="text-center mb-6">
+                                <h2 class="text-2xl font-black mb-1 text-gray-800">判定結果</h2>
+                                <p class="text-sm font-bold" :class="verdictColor">{{ verdictTitle }}</p>
+                            </div>
+                            
+                            <div class="chart-container mb-6">
+                                <canvas id="scoreChart"></canvas>
+                                <div class="chart-center-text">
+                                    <span class="text-5xl font-black text-gray-800">{{ totalScore }}</span>
+                                    <span class="text-lg text-gray-500 font-bold">/100</span>
+                                    <p class="text-xs text-gray-400 mt-1">総合スコア</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 rounded-xl p-4 mb-6 shadow-inner text-left max-w-md mx-auto">
+                                <p class="text-sm text-gray-700 font-bold mb-2 border-b pb-1">アドバイス</p>
+                                <p class="text-sm text-gray-700 leading-relaxed">{{ adviceText }}</p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 max-w-md mx-auto mb-4">
+                                <div class="bg-white border border-gray-200 rounded-lg p-3 text-center shadow-sm">
+                                    <p class="text-xs text-gray-500 mb-1">実質負担額</p>
+                                    <p class="text-lg font-bold text-blue-700">{{ formatPrice(calculatedRealCost) }} <span class="text-xs">円</span></p>
+                                </div>
+                                <div class="bg-white border border-gray-200 rounded-lg p-3 text-center shadow-sm">
+                                    <p class="text-xs text-gray-500 mb-1">妥当ライン(目安)</p>
+                                    <p class="text-lg font-bold text-gray-600">{{ formatPrice(calculatedFairPrice) }} <span class="text-xs">円</span></p>
+                                </div>
+                            </div>
+                            
+                            <!-- 保存用透かしロゴ等を入れたい場合はここに -->
+                            <div class="text-center text-[10px] text-gray-300 mt-2">
+                                Generated by お得チェッカー
                             </div>
                         </div>
+                        
+                        <!-- アクションボタンエリア（キャプチャには含まれない） -->
+                        <div class="flex flex-col items-center gap-4 mt-8">
+                            <button @click="saveScreenshot" class="w-full max-w-xs py-3 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl font-bold shadow-sm hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                                <i class="fa-solid fa-camera mr-2"></i> 結果を画像として保存
+                            </button>
 
-                        <div class="bg-gray-50 rounded-xl p-4 mb-6 shadow-inner text-left max-w-md mx-auto">
-                            <p class="text-sm text-gray-700 font-bold mb-2 border-b pb-1">アドバイス</p>
-                            <p class="text-sm text-gray-700 leading-relaxed">{{ adviceText }}</p>
+                            <button @click="resetApp" class="w-full max-w-xs py-3 bg-gray-800 text-white rounded-xl font-bold shadow-md hover:bg-gray-900 transition-colors flex items-center justify-center">
+                                次の商品をチェックする <i class="fa-solid fa-rotate-right ml-2"></i>
+                            </button>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4 max-w-md mx-auto mb-8">
-                            <div class="bg-white border border-gray-200 rounded-lg p-3 text-center shadow-sm">
-                                <p class="text-xs text-gray-500 mb-1">実質負担額</p>
-                                <p class="text-lg font-bold text-blue-700">{{ formatPrice(calculatedRealCost) }} <span class="text-xs">円</span></p>
-                            </div>
-                            <div class="bg-white border border-gray-200 rounded-lg p-3 text-center shadow-sm">
-                                <p class="text-xs text-gray-500 mb-1">妥当ライン(目安)</p>
-                                <p class="text-lg font-bold text-gray-600">{{ formatPrice(calculatedFairPrice) }} <span class="text-xs">円</span></p>
-                            </div>
-                        </div>
-
-                        <button @click="resetApp" class="text-gray-500 hover:text-gray-800 underline text-sm transition-colors">
-                            最初からやり直す
-                        </button>
                     </div>
 
                 </transition>
@@ -352,7 +370,6 @@
                 const selectedBrand = ref(null);
                 const selectedCategory = ref(null);
                 
-                // 発売時期を年と月に分割
                 const releaseYear = ref('');
                 const releaseMonth = ref('');
                 const msrpPrice = ref(null);
@@ -383,7 +400,6 @@
                 const adviceText = ref('');
                 let chartInstance = null;
 
-                // 選択可能な年リスト (2010年〜現在+1年)
                 const availableYears = computed(() => {
                     const currentYear = new Date().getFullYear();
                     const years = [];
@@ -515,7 +531,6 @@
                     const realCost = Math.max(0, bestPrice - totalDiscount - totalReward);
                     calculatedRealCost.value = Math.floor(realCost);
 
-                    // 選択された年と月から日付を生成
                     const today = new Date('2026-10-12');
                     const rDate = new Date(releaseYear.value, releaseMonth.value - 1);
                     
@@ -598,6 +613,28 @@
                     });
                 };
 
+                // スクリーンショット保存処理
+                const saveScreenshot = async () => {
+                    const target = document.getElementById('captureArea');
+                    if (!target) return;
+                    try {
+                        const canvas = await html2canvas(target, {
+                            scale: 2, // 高画質化
+                            backgroundColor: '#ffffff'
+                        });
+                        const url = canvas.toDataURL('image/png');
+                        const a = document.createElement('a');
+                        a.href = url;
+                        // ファイル名に現在時刻を含める
+                        const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, '');
+                        a.download = `otoku_checker_${dateStr}.png`;
+                        a.click();
+                    } catch (e) {
+                        console.error('Screenshot failed', e);
+                        alert('画像の保存に失敗しました。');
+                    }
+                };
+
                 const formatPrice = (price) => new Intl.NumberFormat('ja-JP').format(price);
 
                 const resetApp = () => {
@@ -613,6 +650,8 @@
                     discounts.value = [];
                     rewards.value = [];
                     questions.value.forEach(q => q.answer = null);
+                    // 上部へスクロール
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
 
                 return {
@@ -622,10 +661,11 @@
                     msrpPrice, storePrice, onlinePrice, validateAndNextStep3,
                     discounts, rewards, questions, allQuestionsAnswered, calculateFinalScore,
                     totalScore, calculatedRealCost, calculatedFairPrice, verdictTitle, verdictColor,
-                    adviceText, formatPrice, resetApp
+                    adviceText, formatPrice, resetApp, saveScreenshot
                 };
             }
         }).mount('#app');
     </script>
 </body>
 </html>
+
